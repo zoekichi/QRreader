@@ -2,38 +2,35 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QRコード比較リーダー</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      height: 100%;
       font-family: sans-serif;
       background-color: #f0f0f0;
-      overflow: hidden;
+      overflow: auto; /* ← スクロールできるように修正 */
     }
 
     body {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      padding: 1rem 0;
-      box-sizing: border-box;
+      padding: 1rem;
     }
 
     h1 {
       font-size: 1.2rem;
-      margin: 0.5rem 0;
+      margin-bottom: 1rem;
     }
 
     #reader-wrapper {
       position: relative;
       width: 90vw;
       max-width: 400px;
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 1 / 1; /* 正方形を強制 */
     }
 
     #reader {
@@ -44,92 +41,95 @@
       overflow: hidden;
     }
 
-    /* 四隅だけのガイド線 */
+    /* カスタムガイド線（白い四隅） */
+    #custom-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80%;
+      height: 80%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
     #custom-guide::before,
     #custom-guide::after {
       content: "";
       position: absolute;
       width: 100%;
       height: 100%;
+      box-sizing: border-box;
       pointer-events: none;
     }
 
-    #custom-guide {
-      position: absolute;
+    /* 四隅の白い線を描画（上下左右それぞれ） */
+    #custom-guide::before {
+      border-top: 4px solid white;
+      border-left: 4px solid white;
+      width: 20px;
+      height: 20px;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    #custom-guide::before {
-      box-sizing: border-box;
-      border: 4px solid transparent;
-      border-top-color: white;
-      border-left-color: white;
-      width: 20%;
-      height: 20%;
     }
 
     #custom-guide::after {
-      box-sizing: border-box;
-      border: 4px solid transparent;
-      border-bottom-color: white;
-      border-right-color: white;
-      width: 20%;
-      height: 20%;
+      border-bottom: 4px solid white;
+      border-right: 4px solid white;
+      width: 20px;
+      height: 20px;
       bottom: 0;
       right: 0;
-      position: absolute;
     }
 
     #result {
-      font-size: 0.95rem;
+      margin-top: 1rem;
+      font-size: 1rem;
       text-align: center;
-      margin: 0.5rem;
-      padding: 0.5rem;
-      border-radius: 6px;
-      background: #fff;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      padding: 0.75rem;
+      border-radius: 8px;
       width: 90%;
       max-width: 400px;
+      background-color: #ffffff;
+      color: #000000;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
     .match {
-      background-color: #007bff !important;
-      color: #fff;
+      background-color: #007bff;
+      color: #ffffff;
     }
 
     .no-match {
-      background-color: #ff4d4d !important;
-      color: #fff;
+      background-color: #d9534f;
+      color: #ffffff;
     }
 
     .symbol {
       font-size: 2.5rem;
-      margin-bottom: 0.2rem;
+      margin-bottom: 0.25rem;
     }
 
     .text {
-      font-size: 1.2rem;
-      margin-bottom: 0.3rem;
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
     }
 
     .content {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       word-break: break-word;
     }
 
     .button-group {
+      margin-top: 1rem;
       display: flex;
-      gap: 0.5rem;
+      flex-wrap: wrap;
       justify-content: center;
-      margin-bottom: 1rem;
+      gap: 0.75rem;
     }
 
     button {
-      padding: 0.5rem 1rem;
-      font-size: 0.9rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
       border: none;
       border-radius: 6px;
       cursor: pointer;
@@ -137,20 +137,12 @@
 
     #retry-btn {
       background-color: #007bff;
-      color: white;
+      color: #fff;
     }
 
     #second-scan-btn {
       background-color: #28a745;
-      color: white;
-    }
-
-    #retry-btn:hover {
-      background-color: #0056b3;
-    }
-
-    #second-scan-btn:hover {
-      background-color: #1e7e34;
+      color: #fff;
     }
   </style>
 </head>
@@ -183,13 +175,11 @@
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: function(viewfinderWidth, viewfinderHeight) {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const boxSize = Math.floor(minEdge * 0.85);
-            return { width: boxSize, height: boxSize };
+          qrbox: (vw, vh) => {
+            const size = Math.min(vw, vh) * 0.8;
+            return { width: size, height: size }; // 正方形
           },
-          showScanBox: false,
-          disableFlip: false
+          showScanBox: false
         },
         onScanCallback
       );
@@ -198,15 +188,15 @@
     const resetScan = () => {
       firstCode = null;
       secondCode = null;
+      resultDiv.className = '';
       resultDiv.innerText = "QRコードを1回読み取ってください";
-      document.body.className = "";
       retryBtn.style.display = "none";
       secondScanBtn.style.display = "none";
       startScanner(onFirstScan);
     };
 
     const showResult = (match, code1, code2) => {
-      document.body.className = match ? "match" : "no-match";
+      resultDiv.className = match ? "match" : "no-match";
       resultDiv.innerHTML = `
         <div class="symbol">${match ? "〇" : "✕"}</div>
         <div class="text">${match ? "一致しています" : "一致していません"}</div>
@@ -221,7 +211,7 @@
     const onFirstScan = (decodedText) => {
       html5QrCode.stop();
       firstCode = decodedText;
-      resultDiv.innerText = "1回目のQRコードを読み取りました。2回目の読み取りを開始してください。";
+      resultDiv.innerText = "1回目のQRコードを読み取りました。2回目を開始してください。";
       secondScanBtn.style.display = "inline-block";
     };
 
@@ -240,7 +230,7 @@
     });
 
     Html5Qrcode.getCameras().then(cameras => {
-      if (cameras && cameras.length) {
+      if (cameras.length) {
         resetScan();
       } else {
         resultDiv.innerText = "カメラが見つかりませんでした。";
