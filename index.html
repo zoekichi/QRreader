@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QRコード比較リーダー</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
@@ -27,8 +27,7 @@
     #reader {
       width: 90vw;
       max-width: 400px;
-      height: 60vw;
-      max-height: 300px;
+      aspect-ratio: 1 / 1;
       margin-bottom: 1rem;
       border-radius: 10px;
       overflow: hidden;
@@ -108,7 +107,14 @@
 
       html5QrCode.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
+        {
+          fps: 10,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minSize = Math.min(viewfinderWidth, viewfinderHeight);
+            const boxSize = minSize * 0.8;
+            return { width: boxSize, height: boxSize }; // 正方形にする
+          }
+        },
         onScanSuccess
       );
     };
