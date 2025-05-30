@@ -2,48 +2,153 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>QRコードリーダー</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRコード比較リーダー</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 30px;
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      padding: 1rem;
+      background-color: #f0f0f0;
+      transition: background-color 0.3s ease;
     }
+
+    h1 {
+      margin: 0.5rem 0;
+      text-align: center;
+    }
+
     #reader {
-      width: 300px;
-      margin: auto;
+      width: 90vw;
+      max-width: 400px;
+      height: 60vw;
+      max-height: 300px;
+      margin-bottom: 1rem;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #result {
+      text-align: center;
+      font-size: 1.2rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 90%;
+    }
+
+    .match {
+      background-color: #d0f0ff;
+      color: #0077cc;
+    }
+
+    .no-match {
+      background-color: #ffd6d6;
+      color: #cc0000;
+    }
+
+    .symbol {
+      font-size: 4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .text {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .content {
+      font-size: 1rem;
+      word-break: break-all;
+    }
+
+    #retry-btn {
+      margin-top: 1rem;
+      padding: 0.7rem 1.5rem;
+      font-size: 1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #retry-btn:hover {
+      background-color: #0056b3;
     }
   </style>
 </head>
 <body>
-  <h1>QRコードを読み取る</h1>
+  <h1>QRコード比較リーダー</h1>
   <div id="reader"></div>
-  <p id="result">ここに結果が表示されます</p>
+  <div id="result">QRコードを2回読み取ってください</div>
+  <button id="retry-btn" style="display: none;">🔁 再読み取り</button>
 
   <script>
-    // 成功時の処理
-    function onScanSuccess(decodedText, decodedResult) {
-      document.getElementById('result').innerText = `読み取った内容: ${decodedText}`;
-    }
-
-    // 失敗時の処理（省略可能）
-    function onScanFailure(error) {
-      console.warn(`読み取り失敗: ${error}`);
-    }
-
-    // QRコードリーダー起動
+    const resultDiv = document.getElementById('result');
+    const retryBtn = document.getElementById('retry-btn');
     const html5QrCode = new Html5Qrcode("reader");
 
-    html5QrCode.start(
-      { facingMode: "environment" }, // 背面カメラ
-      {
-        fps: 10,
-        qrbox: 250
-      },
-      onScanSuccess,
-      onScanFailure
-    );
+    let firstCode = null;
+    let secondCode = null;
+
+    const resetScan = () => {
+      firstCode = null;
+      secondCode = null;
+      resultDiv.innerText = "QRコードを2回読み取ってください";
+      document.body.className = "";
+      retryBtn.style.display = "none";
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        onScanSuccess
+      );
+    };
+
+    const showResult = (match, code1, code2) => {
+      document.body.className = match ? "match" : "no-match";
+      resultDiv.innerHTML = `
+        <div class="symbol">${match ? "〇" : "✕"}</div>
+        <div class="text">${match ? "一致しています" : "一致していません"}</div>
+        <div class="content">
+          <strong>1回目:</strong> ${code1}<br>
+          <strong>2回目:</strong> ${code2}
+        </div>
+      `;
+      retryBtn.style.display = "inline-block";
+    };
+
+    const onScanSuccess = (decodedText) => {
+      if (!firstCode) {
+        firstCode = decodedText;
+        resultDiv.innerText = "2回目のQRコードを読み取ってください...";
+      } else if (!secondCode) {
+        secondCode = decodedText;
+        html5QrCode.stop();
+        const isMatch = firstCode === secondCode;
+        showResult(isMatch, firstCode, secondCode);
+      }
+    };
+
+    retryBtn.addEventListener('click', resetScan);
+
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras && cameras.length) {
+        resetScan(); // 最初の読み取りを開始
+      } else {
+        resultDiv.innerText = "カメラが見つかりませんでした。";
+      }
+    }).catch(err => {
+      resultDiv.innerText = "カメラの初期化に失敗しました：" + err;
+    });
   </script>
 </body>
 </html>
