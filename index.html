@@ -16,7 +16,7 @@
       height: 100vh;
       padding: 1rem;
       background-color: #f0f0f0;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     h1 {
@@ -26,7 +26,7 @@
 
     #reader {
       width: 90vw;
-      max-width: 400px;
+      max-width: 500px;
       aspect-ratio: 1 / 1;
       margin-bottom: 1rem;
       border-radius: 10px;
@@ -44,8 +44,8 @@
     }
 
     .match {
-      background-color: #d0f0ff;
-      color: #0077cc;
+      background-color: #0066cc;
+      color: #ffffff;
     }
 
     .no-match {
@@ -65,7 +65,7 @@
 
     .content {
       font-size: 1rem;
-      word-break: break-all;
+      word-break: break-word;
     }
 
     #retry-btn {
@@ -97,10 +97,12 @@
 
     let firstCode = null;
     let secondCode = null;
+    let scanInProgress = false;
 
     const resetScan = () => {
       firstCode = null;
       secondCode = null;
+      scanInProgress = false;
       resultDiv.innerText = "QRコードを2回読み取ってください";
       document.body.className = "";
       retryBtn.style.display = "none";
@@ -109,10 +111,9 @@
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const minSize = Math.min(viewfinderWidth, viewfinderHeight);
-            const boxSize = minSize * 0.8;
-            return { width: boxSize, height: boxSize }; // 正方形にする
+          qrbox: (w, h) => {
+            const size = Math.min(w, h) * 0.9; // より大きな正方形に
+            return { width: size, height: size };
           }
         },
         onScanSuccess
@@ -133,10 +134,18 @@
     };
 
     const onScanSuccess = (decodedText) => {
+      if (scanInProgress) return; // 連続読み取りを防止
+
       if (!firstCode) {
+        scanInProgress = true;
         firstCode = decodedText;
-        resultDiv.innerText = "2回目のQRコードを読み取ってください...";
+        resultDiv.innerText = "1回目のQRコードを読み取りました";
+        setTimeout(() => {
+          resultDiv.innerText = "2回目のQRコードを読み取ってください";
+          scanInProgress = false;
+        }, 1000); // ← インターバル：1秒
       } else if (!secondCode) {
+        scanInProgress = true;
         secondCode = decodedText;
         html5QrCode.stop();
         const isMatch = firstCode === secondCode;
@@ -148,7 +157,7 @@
 
     Html5Qrcode.getCameras().then(cameras => {
       if (cameras && cameras.length) {
-        resetScan(); // 最初の読み取りを開始
+        resetScan();
       } else {
         resultDiv.innerText = "カメラが見つかりませんでした。";
       }
