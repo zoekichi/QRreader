@@ -31,6 +31,7 @@
       margin-bottom: 1rem;
       border-radius: 10px;
       overflow: hidden;
+      background: #000;
     }
 
     #result {
@@ -38,18 +39,19 @@
       font-size: 1.2rem;
       padding: 1rem;
       border-radius: 8px;
-      background: #fff;
+      background: #ffffff;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       max-width: 90%;
+      color: #333;
     }
 
     .match {
-      background-color: #0066cc;
-      color: #ffffff;
+      background-color: #e0f0ff; /* 淡い青 */
+      color: #004488;
     }
 
     .no-match {
-      background-color: #ffd6d6;
+      background-color: #ffe0e0;
       color: #cc0000;
     }
 
@@ -68,56 +70,73 @@
       word-break: break-word;
     }
 
-    #retry-btn {
+    button {
       margin-top: 1rem;
       padding: 0.7rem 1.5rem;
       font-size: 1rem;
-      background-color: #007bff;
-      color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
 
+    #retry-btn {
+      background-color: #007bff;
+      color: white;
+    }
+
     #retry-btn:hover {
       background-color: #0056b3;
+    }
+
+    #second-scan-btn {
+      background-color: #28a745;
+      color: white;
+    }
+
+    #second-scan-btn:hover {
+      background-color: #1e7e34;
     }
   </style>
 </head>
 <body>
   <h1>QRコード比較リーダー</h1>
   <div id="reader"></div>
-  <div id="result">QRコードを2回読み取ってください</div>
+  <div id="result">QRコードを1回読み取ってください</div>
+  <button id="second-scan-btn" style="display: none;">📷 2回目の読み取りを開始</button>
   <button id="retry-btn" style="display: none;">🔁 再読み取り</button>
 
   <script>
     const resultDiv = document.getElementById('result');
     const retryBtn = document.getElementById('retry-btn');
+    const secondScanBtn = document.getElementById('second-scan-btn');
     const html5QrCode = new Html5Qrcode("reader");
 
     let firstCode = null;
     let secondCode = null;
-    let scanInProgress = false;
 
-    const resetScan = () => {
-      firstCode = null;
-      secondCode = null;
-      scanInProgress = false;
-      resultDiv.innerText = "QRコードを2回読み取ってください";
-      document.body.className = "";
-      retryBtn.style.display = "none";
-
+    const startScanner = (onScanCallback) => {
       html5QrCode.start(
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: (w, h) => {
-            const size = Math.min(w, h) * 0.9; // より大きな正方形に
-            return { width: size, height: size };
+          qrbox: function(viewfinderWidth, viewfinderHeight) {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const boxSize = Math.floor(minEdge * 0.85); // 正方形でやや大きめ
+            return { width: boxSize, height: boxSize };
           }
         },
-        onScanSuccess
+        onScanCallback
       );
+    };
+
+    const resetScan = () => {
+      firstCode = null;
+      secondCode = null;
+      resultDiv.innerText = "QRコードを1回読み取ってください";
+      document.body.className = "";
+      retryBtn.style.display = "none";
+      secondScanBtn.style.display = "none";
+      startScanner(onFirstScan);
     };
 
     const showResult = (match, code1, code2) => {
@@ -133,27 +152,26 @@
       retryBtn.style.display = "inline-block";
     };
 
-    const onScanSuccess = (decodedText) => {
-      if (scanInProgress) return; // 連続読み取りを防止
+    const onFirstScan = (decodedText) => {
+      html5QrCode.stop();
+      firstCode = decodedText;
+      resultDiv.innerText = "1回目のQRコードを読み取りました。2回目の読み取りを開始してください。";
+      secondScanBtn.style.display = "inline-block";
+    };
 
-      if (!firstCode) {
-        scanInProgress = true;
-        firstCode = decodedText;
-        resultDiv.innerText = "1回目のQRコードを読み取りました";
-        setTimeout(() => {
-          resultDiv.innerText = "2回目のQRコードを読み取ってください";
-          scanInProgress = false;
-        }, 1000); // ← インターバル：1秒
-      } else if (!secondCode) {
-        scanInProgress = true;
-        secondCode = decodedText;
-        html5QrCode.stop();
-        const isMatch = firstCode === secondCode;
-        showResult(isMatch, firstCode, secondCode);
-      }
+    const onSecondScan = (decodedText) => {
+      html5QrCode.stop();
+      secondCode = decodedText;
+      const isMatch = firstCode === secondCode;
+      showResult(isMatch, firstCode, secondCode);
+      secondScanBtn.style.display = "none";
     };
 
     retryBtn.addEventListener('click', resetScan);
+    secondScanBtn.addEventListener('click', () => {
+      resultDiv.innerText = "2回目のQRコードを読み取ってください...";
+      startScanner(onSecondScan);
+    });
 
     Html5Qrcode.getCameras().then(cameras => {
       if (cameras && cameras.length) {
