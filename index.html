@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>QRコードリーダー</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 30px;
+    }
+    #reader {
+      width: 300px;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>QRコードを読み取る</h1>
+  <div id="reader"></div>
+  <p id="result">ここに結果が表示されます</p>
+
+  <script>
+    // 成功時の処理
+    function onScanSuccess(decodedText, decodedResult) {
+      document.getElementById('result').innerText = `読み取った内容: ${decodedText}`;
+    }
+
+    // 失敗時の処理（省略可能）
+    function onScanFailure(error) {
+      console.warn(`読み取り失敗: ${error}`);
+    }
+
+    // QRコードリーダー起動
+    const html5QrCode = new Html5Qrcode("reader");
+
+    html5QrCode.start(
+      { facingMode: "environment" }, // 背面カメラ
+      {
+        fps: 10,
+        qrbox: 250
+      },
+      onScanSuccess,
+      onScanFailure
+    );
+  </script>
+</body>
+</html>
