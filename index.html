@@ -24,14 +24,33 @@
       text-align: center;
     }
 
-    #reader {
+    #reader-wrapper {
+      position: relative;
       width: 90vw;
       max-width: 500px;
       aspect-ratio: 1 / 1;
       margin-bottom: 1rem;
+    }
+
+    #reader {
+      width: 100%;
+      height: 100%;
+      background: #000;
       border-radius: 10px;
       overflow: hidden;
-      background: #000;
+    }
+
+    #custom-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60%;
+      height: 60%;
+      transform: translate(-50%, -50%);
+      border: 3px solid rgba(0, 200, 0, 0.8);
+      border-radius: 8px;
+      box-sizing: border-box;
+      pointer-events: none;
     }
 
     #result {
@@ -46,7 +65,7 @@
     }
 
     .match {
-      background-color: #e0f0ff; /* 淡い青 */
+      background-color: #e0f0ff;
       color: #004488;
     }
 
@@ -100,7 +119,12 @@
 </head>
 <body>
   <h1>QRコード比較リーダー</h1>
-  <div id="reader"></div>
+
+  <div id="reader-wrapper">
+    <div id="reader"></div>
+    <div id="custom-guide"></div>
+  </div>
+
   <div id="result">QRコードを1回読み取ってください</div>
   <button id="second-scan-btn" style="display: none;">📷 2回目の読み取りを開始</button>
   <button id="retry-btn" style="display: none;">🔁 再読み取り</button>
@@ -121,9 +145,11 @@
           fps: 10,
           qrbox: function(viewfinderWidth, viewfinderHeight) {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const boxSize = Math.floor(minEdge * 0.85); // 正方形でやや大きめ
+            const boxSize = Math.floor(minEdge * 0.85); // 正方形サイズ
             return { width: boxSize, height: boxSize };
-          }
+          },
+          showScanBox: false, // 内部ガイドを非表示
+          disableFlip: false
         },
         onScanCallback
       );
