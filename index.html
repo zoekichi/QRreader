@@ -11,7 +11,7 @@
       padding: 0;
       font-family: sans-serif;
       background-color: #f0f0f0;
-      overflow: auto; /* ← スクロールできるように修正 */
+      overflow: auto;
     }
 
     body {
@@ -30,7 +30,8 @@
       position: relative;
       width: 90vw;
       max-width: 400px;
-      aspect-ratio: 1 / 1; /* 正方形を強制 */
+      aspect-ratio: 1 / 1;
+      margin-bottom: 1rem;
     }
 
     #reader {
@@ -41,7 +42,7 @@
       overflow: hidden;
     }
 
-    /* カスタムガイド線（白い四隅） */
+    /* 四隅のガイドだけ */
     #custom-guide {
       position: absolute;
       top: 50%;
@@ -52,34 +53,17 @@
       pointer-events: none;
     }
 
-    #custom-guide::before,
-    #custom-guide::after {
-      content: "";
+    .corner {
       position: absolute;
-      width: 100%;
-      height: 100%;
-      box-sizing: border-box;
-      pointer-events: none;
-    }
-
-    /* 四隅の白い線を描画（上下左右それぞれ） */
-    #custom-guide::before {
-      border-top: 4px solid white;
-      border-left: 4px solid white;
       width: 20px;
       height: 20px;
-      top: 0;
-      left: 0;
+      border: 4px solid white;
     }
 
-    #custom-guide::after {
-      border-bottom: 4px solid white;
-      border-right: 4px solid white;
-      width: 20px;
-      height: 20px;
-      bottom: 0;
-      right: 0;
-    }
+    .tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+    .tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+    .bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+    .br { bottom: 0; right: 0; border-left: none; border-top: none; }
 
     #result {
       margin-top: 1rem;
@@ -144,6 +128,10 @@
       background-color: #28a745;
       color: #fff;
     }
+
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -151,20 +139,26 @@
 
   <div id="reader-wrapper">
     <div id="reader"></div>
-    <div id="custom-guide"></div>
+    <div id="custom-guide">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+    </div>
   </div>
 
-  <div id="result">QRコードを1回読み取ってください</div>
+  <div id="result">1回目のQRコードを読み取ってください</div>
 
   <div class="button-group">
-    <button id="second-scan-btn" style="display: none;">📷 2回目の読み取り</button>
-    <button id="retry-btn" style="display: none;">🔁 再読み取り</button>
+    <button id="second-scan-btn" class="hidden">📷 2回目の読み取り</button>
+    <button id="retry-btn" class="hidden">🔁 再読み取り</button>
   </div>
 
   <script>
     const resultDiv = document.getElementById('result');
     const retryBtn = document.getElementById('retry-btn');
     const secondScanBtn = document.getElementById('second-scan-btn');
+    const readerWrapper = document.getElementById('reader-wrapper');
     const html5QrCode = new Html5Qrcode("reader");
 
     let firstCode = null;
@@ -177,7 +171,7 @@
           fps: 10,
           qrbox: (vw, vh) => {
             const size = Math.min(vw, vh) * 0.8;
-            return { width: size, height: size }; // 正方形
+            return { width: size, height: size };
           },
           showScanBox: false
         },
@@ -189,9 +183,10 @@
       firstCode = null;
       secondCode = null;
       resultDiv.className = '';
-      resultDiv.innerText = "QRコードを1回読み取ってください";
-      retryBtn.style.display = "none";
-      secondScanBtn.style.display = "none";
+      resultDiv.innerText = "1回目のQRコードを読み取ってください";
+      retryBtn.classList.add("hidden");
+      secondScanBtn.classList.add("hidden");
+      readerWrapper.classList.remove("hidden");
       startScanner(onFirstScan);
     };
 
@@ -205,14 +200,15 @@
           <strong>2回目:</strong> ${code2}
         </div>
       `;
-      retryBtn.style.display = "inline-block";
+      retryBtn.classList.remove("hidden");
+      readerWrapper.classList.add("hidden");
     };
 
     const onFirstScan = (decodedText) => {
       html5QrCode.stop();
       firstCode = decodedText;
       resultDiv.innerText = "1回目のQRコードを読み取りました。2回目を開始してください。";
-      secondScanBtn.style.display = "inline-block";
+      secondScanBtn.classList.remove("hidden");
     };
 
     const onSecondScan = (decodedText) => {
@@ -220,7 +216,7 @@
       secondCode = decodedText;
       const isMatch = firstCode === secondCode;
       showResult(isMatch, firstCode, secondCode);
-      secondScanBtn.style.display = "none";
+      secondScanBtn.classList.add("hidden");
     };
 
     retryBtn.addEventListener('click', resetScan);
