@@ -10,8 +10,9 @@
       margin: 0;
       padding: 0;
       font-family: sans-serif;
-      background-color: #f0f0f0;
       overflow: auto;
+      background-color: #f0f0f0;
+      transition: background-color 0.5s ease;
     }
 
     body {
@@ -42,7 +43,7 @@
       overflow: hidden;
     }
 
-    /* 四隅のガイドだけ */
+    /* カスタム四隅ガイド */
     #custom-guide {
       position: absolute;
       top: 50%;
@@ -78,13 +79,7 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
-    .match {
-      background-color: #007bff;
-      color: #ffffff;
-    }
-
-    .no-match {
-      background-color: #d9534f;
+    .match, .no-match {
       color: #ffffff;
     }
 
@@ -154,12 +149,19 @@
     <button id="retry-btn" class="hidden">🔁 再読み取り</button>
   </div>
 
+  <!-- 効果音 -->
+  <audio id="sound-success" src="https://assets.mixkit.co/sfx/preview/mixkit-positive-interface-beep-221.wav"></audio>
+  <audio id="sound-fail" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.wav"></audio>
+
   <script>
     const resultDiv = document.getElementById('result');
     const retryBtn = document.getElementById('retry-btn');
     const secondScanBtn = document.getElementById('second-scan-btn');
     const readerWrapper = document.getElementById('reader-wrapper');
     const html5QrCode = new Html5Qrcode("reader");
+
+    const successSound = document.getElementById('sound-success');
+    const failSound = document.getElementById('sound-fail');
 
     let firstCode = null;
     let secondCode = null;
@@ -169,8 +171,9 @@
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: (vw, vh) => {
-            const size = Math.min(vw, vh) * 0.8;
+          qrbox: () => {
+            const min = Math.min(window.innerWidth, window.innerHeight);
+            const size = Math.floor(min * 0.7);
             return { width: size, height: size };
           },
           showScanBox: false
@@ -183,6 +186,7 @@
       firstCode = null;
       secondCode = null;
       resultDiv.className = '';
+      document.body.style.backgroundColor = '#f0f0f0';
       resultDiv.innerText = "1回目のQRコードを読み取ってください";
       retryBtn.classList.add("hidden");
       secondScanBtn.classList.add("hidden");
@@ -200,6 +204,16 @@
           <strong>2回目:</strong> ${code2}
         </div>
       `;
+
+      // 背景色変更と音再生
+      if (match) {
+        document.body.style.backgroundColor = '#007bff';
+        successSound.play();
+      } else {
+        document.body.style.backgroundColor = '#d9534f';
+        failSound.play();
+      }
+
       retryBtn.classList.remove("hidden");
       readerWrapper.classList.add("hidden");
     };
@@ -207,7 +221,7 @@
     const onFirstScan = (decodedText) => {
       html5QrCode.stop();
       firstCode = decodedText;
-      resultDiv.innerText = "1回目のQRコードを読み取りました。2回目を開始してください。";
+      resultDiv.innerText = "1回目のQRコードの読み取りが完了しました。\n2回目のQRコードを読み取ってください。";
       secondScanBtn.classList.remove("hidden");
     };
 
