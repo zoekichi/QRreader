@@ -14,33 +14,27 @@
       background-color: #f0f0f0;
       transition: background-color 0.5s ease;
     }
+
     body {
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 1rem;
     }
+
     h1 {
       font-size: 1.2rem;
       margin-bottom: 1rem;
     }
-    #start-btn {
-      padding: 0.6rem 1.2rem;
-      font-size: 1rem;
-      background-color: #28a745;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-bottom: 1rem;
-    }
+
     #reader-wrapper {
       position: relative;
       width: 90vw;
-      max-width: 400px;
+      max-width: 500px;
       aspect-ratio: 1 / 1;
       margin-bottom: 1rem;
     }
+
     #reader {
       width: 100%;
       height: 100%;
@@ -48,6 +42,7 @@
       border-radius: 10px;
       overflow: hidden;
     }
+
     #result {
       margin-top: 1rem;
       font-size: 1rem;
@@ -55,33 +50,40 @@
       padding: 0.75rem;
       border-radius: 8px;
       width: 90%;
-      max-width: 400px;
+      max-width: 500px;
       background-color: #ffffff;
       color: #000000;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
+
     .match, .no-match {
       color: #ffffff;
     }
+
     .symbol {
       font-size: 4rem;
       font-weight: bold;
       margin-bottom: 0.25rem;
     }
+
     .match .symbol {
       color: #007bff;
     }
+
     .no-match .symbol {
       color: #d9534f;
     }
+
     .text {
       font-size: 1.3rem;
       margin-bottom: 0.5rem;
     }
+
     .content {
       font-size: 0.95rem;
       word-break: break-word;
     }
+
     .button-group {
       margin-top: 1rem;
       display: flex;
@@ -89,6 +91,7 @@
       justify-content: center;
       gap: 0.75rem;
     }
+
     button {
       padding: 0.6rem 1.2rem;
       font-size: 1rem;
@@ -96,14 +99,17 @@
       border-radius: 6px;
       cursor: pointer;
     }
+
     #retry-btn {
       background-color: #007bff;
       color: #fff;
     }
+
     #second-scan-btn {
       background-color: #28a745;
       color: #fff;
     }
+
     .hidden {
       display: none !important;
     }
@@ -112,56 +118,48 @@
 <body>
   <h1>QRコード比較リーダー</h1>
 
-  <button id="start-btn">▶ スタート</button>
-
-  <div id="reader-wrapper" class="hidden">
+  <div id="reader-wrapper">
     <div id="reader"></div>
   </div>
 
-  <div id="result">スタートボタンを押してください</div>
+  <div id="result">1回目のQRコードを読み取ってください</div>
 
   <div class="button-group">
     <button id="second-scan-btn" class="hidden">📷 2回目の読み取り</button>
     <button id="retry-btn" class="hidden">🔁 再読み取り</button>
   </div>
 
-  <audio id="sound-success" preload="auto">
-    <source src="https://soundeffect-lab.info/sound/voice/mp3/people-cheer1.mp3" type="audio/mp3">
-  </audio>
-  <audio id="sound-fail" preload="auto">
-    <source src="https://soundeffect-lab.info/sound/voice/mp3/boo1.mp3" type="audio/mp3">
-  </audio>
-
   <script>
     const resultDiv = document.getElementById('result');
     const retryBtn = document.getElementById('retry-btn');
     const secondScanBtn = document.getElementById('second-scan-btn');
     const readerWrapper = document.getElementById('reader-wrapper');
-    const startBtn = document.getElementById('start-btn');
-
     const html5QrCode = new Html5Qrcode("reader");
-    const successSound = document.getElementById('sound-success');
-    const failSound = document.getElementById('sound-fail');
 
     let firstCode = null;
     let secondCode = null;
 
-    const startScanner = (onScanCallback) => {
-      html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: () => {
-            const min = Math.min(window.innerWidth, window.innerHeight);
-            const size = Math.floor(min * 0.75);
-            return { width: size, height: size };
-          },
-          showScanBox: false
+    const startScanner = async (onScanCallback) => {
+      const config = {
+        fps: 10,
+        qrbox: () => {
+          const min = Math.min(window.innerWidth, window.innerHeight);
+          const size = Math.floor(min * 0.85); // 85% の大きな枠
+          return { width: size, height: size };
         },
-        onScanCallback
-      ).catch(err => {
-        resultDiv.innerText = "カメラの起動に失敗しました：" + err;
-      });
+        showScanBox: false,
+      };
+
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length) {
+        const cameraId = devices[0].id;
+        html5QrCode.start({ deviceId: { exact: cameraId } }, config, onScanCallback)
+          .catch(err => {
+            resultDiv.innerText = "カメラ起動に失敗しました：" + err;
+          });
+      } else {
+        resultDiv.innerText = "カメラが見つかりませんでした。";
+      }
     };
 
     const resetScan = () => {
@@ -186,17 +184,7 @@
           <strong>2回目:</strong> ${code2}
         </div>
       `;
-
-      if (match) {
-        document.body.style.backgroundColor = '#007bff';
-        successSound.volume = 1.0;
-        successSound.play().catch(e => console.warn("音声再生失敗:", e));
-      } else {
-        document.body.style.backgroundColor = '#d9534f';
-        failSound.volume = 1.0;
-        failSound.play().catch(e => console.warn("音声再生失敗:", e));
-      }
-
+      document.body.style.backgroundColor = match ? '#007bff' : '#d9534f';
       retryBtn.classList.remove("hidden");
       readerWrapper.classList.add("hidden");
     };
@@ -222,26 +210,10 @@
       startScanner(onSecondScan);
     });
 
-    startBtn.addEventListener('click', () => {
-      // 音声許可取得用の初回再生
-      successSound.play().then(() => {
-        successSound.pause();
-        successSound.currentTime = 0;
-      }).catch(() => {});
-
-      startBtn.classList.add("hidden");
-      readerWrapper.classList.remove("hidden");
-
-      // カメラの取得と初期化
-      Html5Qrcode.getCameras().then(cameras => {
-        if (cameras.length > 0) {
-          resetScan();
-        } else {
-          resultDiv.innerText = "カメラが見つかりませんでした。";
-        }
-      }).catch(err => {
-        resultDiv.innerText = "カメラの初期化に失敗しました：" + err;
-      });
+    Html5Qrcode.getCameras().then(() => {
+      resetScan();
+    }).catch(err => {
+      resultDiv.innerText = "カメラの初期化に失敗しました：" + err;
     });
   </script>
 </body>
