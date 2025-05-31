@@ -159,7 +159,9 @@
           showScanBox: false
         },
         onScanCallback
-      );
+      ).catch(err => {
+        resultDiv.innerText = "カメラの起動に失敗しました：" + err;
+      });
     };
 
     const resetScan = () => {
@@ -220,17 +222,25 @@
       startScanner(onSecondScan);
     });
 
-    // 最初にスタートボタンで音声許可を得る
     startBtn.addEventListener('click', () => {
+      // 音声許可取得用の初回再生
       successSound.play().then(() => {
         successSound.pause();
         successSound.currentTime = 0;
-        startBtn.classList.add("hidden");
-        readerWrapper.classList.remove("hidden");
-        resetScan();
+      }).catch(() => {});
+
+      startBtn.classList.add("hidden");
+      readerWrapper.classList.remove("hidden");
+
+      // カメラの取得と初期化
+      Html5Qrcode.getCameras().then(cameras => {
+        if (cameras.length > 0) {
+          resetScan();
+        } else {
+          resultDiv.innerText = "カメラが見つかりませんでした。";
+        }
       }).catch(err => {
-        alert("音声の再生が許可されませんでした。もう一度タップしてください。");
-        console.warn("音声許可失敗:", err);
+        resultDiv.innerText = "カメラの初期化に失敗しました：" + err;
       });
     });
   </script>
