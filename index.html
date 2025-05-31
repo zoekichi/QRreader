@@ -13,7 +13,7 @@
       overflow: auto;
       background-color: #f0f0f0;
       transition: background-color 0.5s ease;
-      min-height: 100vh;
+      height: 100%;
     }
 
     body {
@@ -31,7 +31,7 @@
     #reader-wrapper {
       position: relative;
       width: 90vw;
-      max-width: 500px;
+      max-width: 400px;
       aspect-ratio: 1 / 1;
       margin-bottom: 1rem;
     }
@@ -51,7 +51,7 @@
       padding: 0.75rem;
       border-radius: 8px;
       width: 90%;
-      max-width: 500px;
+      max-width: 400px;
       background-color: #ffffff;
       color: #000000;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -140,32 +140,27 @@
     let firstCode = null;
     let secondCode = null;
 
-    const setFullBackgroundColor = (color) => {
-      document.body.style.backgroundColor = color;
-      document.documentElement.style.backgroundColor = color; // <html>要素にも適用
-    };
-
-    const startScanner = async (onScanCallback) => {
-      const config = {
-        fps: 10,
-        qrbox: () => {
-          const min = Math.min(window.innerWidth, window.innerHeight);
-          return { width: Math.floor(min * 0.85), height: Math.floor(min * 0.85) };
+    const startScanner = (onScanCallback) => {
+      html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: () => {
+            const min = Math.min(window.innerWidth, window.innerHeight);
+            const size = Math.floor(min * 0.75);
+            return { width: size, height: size };
+          },
+          showScanBox: false
         },
-        showScanBox: false
-      };
-
-      html5QrCode.start({ facingMode: "environment" }, config, onScanCallback)
-        .catch(err => {
-          resultDiv.innerText = "カメラ起動に失敗しました：" + err;
-        });
+        onScanCallback
+      );
     };
 
     const resetScan = () => {
       firstCode = null;
       secondCode = null;
       resultDiv.className = '';
-      setFullBackgroundColor('#f0f0f0');
+      document.body.style.backgroundColor = '#f0f0f0';
       resultDiv.innerText = "1回目のQRコードを読み取ってください";
       retryBtn.classList.add("hidden");
       secondScanBtn.classList.add("hidden");
@@ -183,7 +178,16 @@
           <strong>2回目:</strong> ${code2}
         </div>
       `;
-      setFullBackgroundColor(match ? '#007bff' : '#d9534f');
+
+      if (match) {
+        document.body.style.backgroundColor = '#007bff';
+      } else {
+        document.body.style.backgroundColor = '#d9534f';
+        if (navigator.vibrate) {
+          navigator.vibrate(200); // 振動させる（200ms）
+        }
+      }
+
       retryBtn.classList.remove("hidden");
       readerWrapper.classList.add("hidden");
     };
@@ -209,8 +213,12 @@
       startScanner(onSecondScan);
     });
 
-    Html5Qrcode.getCameras().then(() => {
-      resetScan();
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras.length) {
+        resetScan();
+      } else {
+        resultDiv.innerText = "カメラが見つかりませんでした。";
+      }
     }).catch(err => {
       resultDiv.innerText = "カメラの初期化に失敗しました：" + err;
     });
