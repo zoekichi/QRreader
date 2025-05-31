@@ -43,8 +43,6 @@
       overflow: hidden;
     }
 
-    /* カスタムガイド削除済み */
-
     #result {
       margin-top: 1rem;
       font-size: 1rem;
@@ -131,7 +129,7 @@
     <button id="retry-btn" class="hidden">🔁 再読み取り</button>
   </div>
 
-  <!-- 効果音（MP3、音量調整済） -->
+  <!-- 効果音（MP3） -->
   <audio id="sound-success" preload="auto">
     <source src="https://soundeffect-lab.info/sound/voice/mp3/people-cheer1.mp3" type="audio/mp3">
   </audio>
@@ -151,6 +149,20 @@
 
     let firstCode = null;
     let secondCode = null;
+
+    // ▼ 音声再生を許可させる関数を追加
+    function unlockAudio() {
+      [successSound, failSound].forEach(sound => {
+        sound.volume = 0;
+        sound.play().then(() => {
+          sound.pause();
+          sound.currentTime = 0;
+          sound.volume = 1.0;
+        }).catch(e => {
+          console.warn("音声初期化に失敗:", e);
+        });
+      });
+    }
 
     const startScanner = (onScanCallback) => {
       html5QrCode.start(
@@ -220,8 +232,14 @@
       secondScanBtn.classList.add("hidden");
     };
 
-    retryBtn.addEventListener('click', resetScan);
+    // ▼ ここに音声権限解放を追加
+    retryBtn.addEventListener('click', () => {
+      unlockAudio();
+      resetScan();
+    });
+
     secondScanBtn.addEventListener('click', () => {
+      unlockAudio();
       resultDiv.innerText = "2回目のQRコードを読み取ってください...";
       startScanner(onSecondScan);
     });
