@@ -14,19 +14,26 @@
       background-color: #f0f0f0;
       transition: background-color 0.5s ease;
     }
-
     body {
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 1rem;
     }
-
     h1 {
       font-size: 1.2rem;
       margin-bottom: 1rem;
     }
-
+    #start-btn {
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
     #reader-wrapper {
       position: relative;
       width: 90vw;
@@ -34,7 +41,6 @@
       aspect-ratio: 1 / 1;
       margin-bottom: 1rem;
     }
-
     #reader {
       width: 100%;
       height: 100%;
@@ -42,7 +48,6 @@
       border-radius: 10px;
       overflow: hidden;
     }
-
     #result {
       margin-top: 1rem;
       font-size: 1rem;
@@ -55,35 +60,28 @@
       color: #000000;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
-
     .match, .no-match {
       color: #ffffff;
     }
-
     .symbol {
       font-size: 4rem;
       font-weight: bold;
       margin-bottom: 0.25rem;
     }
-
     .match .symbol {
-      color: #007bff; /* 青い〇 */
+      color: #007bff;
     }
-
     .no-match .symbol {
-      color: #d9534f; /* 赤い✕ */
+      color: #d9534f;
     }
-
     .text {
       font-size: 1.3rem;
       margin-bottom: 0.5rem;
     }
-
     .content {
       font-size: 0.95rem;
       word-break: break-word;
     }
-
     .button-group {
       margin-top: 1rem;
       display: flex;
@@ -91,7 +89,6 @@
       justify-content: center;
       gap: 0.75rem;
     }
-
     button {
       padding: 0.6rem 1.2rem;
       font-size: 1rem;
@@ -99,17 +96,14 @@
       border-radius: 6px;
       cursor: pointer;
     }
-
     #retry-btn {
       background-color: #007bff;
       color: #fff;
     }
-
     #second-scan-btn {
       background-color: #28a745;
       color: #fff;
     }
-
     .hidden {
       display: none !important;
     }
@@ -118,18 +112,19 @@
 <body>
   <h1>QRコード比較リーダー</h1>
 
-  <div id="reader-wrapper">
+  <button id="start-btn">▶ スタート</button>
+
+  <div id="reader-wrapper" class="hidden">
     <div id="reader"></div>
   </div>
 
-  <div id="result">1回目のQRコードを読み取ってください</div>
+  <div id="result">スタートボタンを押してください</div>
 
   <div class="button-group">
     <button id="second-scan-btn" class="hidden">📷 2回目の読み取り</button>
     <button id="retry-btn" class="hidden">🔁 再読み取り</button>
   </div>
 
-  <!-- 効果音（MP3） -->
   <audio id="sound-success" preload="auto">
     <source src="https://soundeffect-lab.info/sound/voice/mp3/people-cheer1.mp3" type="audio/mp3">
   </audio>
@@ -142,27 +137,14 @@
     const retryBtn = document.getElementById('retry-btn');
     const secondScanBtn = document.getElementById('second-scan-btn');
     const readerWrapper = document.getElementById('reader-wrapper');
-    const html5QrCode = new Html5Qrcode("reader");
+    const startBtn = document.getElementById('start-btn');
 
+    const html5QrCode = new Html5Qrcode("reader");
     const successSound = document.getElementById('sound-success');
     const failSound = document.getElementById('sound-fail');
 
     let firstCode = null;
     let secondCode = null;
-
-    // ▼ 音声再生を許可させる関数を追加
-    function unlockAudio() {
-      [successSound, failSound].forEach(sound => {
-        sound.volume = 0;
-        sound.play().then(() => {
-          sound.pause();
-          sound.currentTime = 0;
-          sound.volume = 1.0;
-        }).catch(e => {
-          console.warn("音声初期化に失敗:", e);
-        });
-      });
-    }
 
     const startScanner = (onScanCallback) => {
       html5QrCode.start(
@@ -206,11 +188,11 @@
       if (match) {
         document.body.style.backgroundColor = '#007bff';
         successSound.volume = 1.0;
-        successSound.play();
+        successSound.play().catch(e => console.warn("音声再生失敗:", e));
       } else {
         document.body.style.backgroundColor = '#d9534f';
         failSound.volume = 1.0;
-        failSound.play();
+        failSound.play().catch(e => console.warn("音声再生失敗:", e));
       }
 
       retryBtn.classList.remove("hidden");
@@ -232,26 +214,24 @@
       secondScanBtn.classList.add("hidden");
     };
 
-    // ▼ ここに音声権限解放を追加
-    retryBtn.addEventListener('click', () => {
-      unlockAudio();
-      resetScan();
-    });
-
+    retryBtn.addEventListener('click', resetScan);
     secondScanBtn.addEventListener('click', () => {
-      unlockAudio();
       resultDiv.innerText = "2回目のQRコードを読み取ってください...";
       startScanner(onSecondScan);
     });
 
-    Html5Qrcode.getCameras().then(cameras => {
-      if (cameras.length) {
+    // 最初にスタートボタンで音声許可を得る
+    startBtn.addEventListener('click', () => {
+      successSound.play().then(() => {
+        successSound.pause();
+        successSound.currentTime = 0;
+        startBtn.classList.add("hidden");
+        readerWrapper.classList.remove("hidden");
         resetScan();
-      } else {
-        resultDiv.innerText = "カメラが見つかりませんでした。";
-      }
-    }).catch(err => {
-      resultDiv.innerText = "カメラの初期化に失敗しました：" + err;
+      }).catch(err => {
+        alert("音声の再生が許可されませんでした。もう一度タップしてください。");
+        console.warn("音声許可失敗:", err);
+      });
     });
   </script>
 </body>
