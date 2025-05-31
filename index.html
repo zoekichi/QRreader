@@ -43,28 +43,7 @@
       overflow: hidden;
     }
 
-    /* カスタム四隅ガイド */
-    #custom-guide {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 80%;
-      height: 80%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-
-    .corner {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border: 4px solid white;
-    }
-
-    .tl { top: 0; left: 0; border-right: none; border-bottom: none; }
-    .tr { top: 0; right: 0; border-left: none; border-bottom: none; }
-    .bl { bottom: 0; left: 0; border-right: none; border-top: none; }
-    .br { bottom: 0; right: 0; border-left: none; border-top: none; }
+    /* カスタムガイド削除済み */
 
     #result {
       margin-top: 1rem;
@@ -84,8 +63,17 @@
     }
 
     .symbol {
-      font-size: 2.5rem;
+      font-size: 4rem;
+      font-weight: bold;
       margin-bottom: 0.25rem;
+    }
+
+    .match .symbol {
+      color: #007bff; /* 青い〇 */
+    }
+
+    .no-match .symbol {
+      color: #d9534f; /* 赤い✕ */
     }
 
     .text {
@@ -134,12 +122,6 @@
 
   <div id="reader-wrapper">
     <div id="reader"></div>
-    <div id="custom-guide">
-      <div class="corner tl"></div>
-      <div class="corner tr"></div>
-      <div class="corner bl"></div>
-      <div class="corner br"></div>
-    </div>
   </div>
 
   <div id="result">1回目のQRコードを読み取ってください</div>
@@ -149,9 +131,13 @@
     <button id="retry-btn" class="hidden">🔁 再読み取り</button>
   </div>
 
-  <!-- 効果音 -->
-  <audio id="sound-success" src="https://assets.mixkit.co/sfx/preview/mixkit-positive-interface-beep-221.wav"></audio>
-  <audio id="sound-fail" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.wav"></audio>
+  <!-- 効果音（MP3、音量調整済） -->
+  <audio id="sound-success" preload="auto">
+    <source src="https://soundeffect-lab.info/sound/voice/mp3/people-cheer1.mp3" type="audio/mp3">
+  </audio>
+  <audio id="sound-fail" preload="auto">
+    <source src="https://soundeffect-lab.info/sound/voice/mp3/boo1.mp3" type="audio/mp3">
+  </audio>
 
   <script>
     const resultDiv = document.getElementById('result');
@@ -173,7 +159,7 @@
           fps: 10,
           qrbox: () => {
             const min = Math.min(window.innerWidth, window.innerHeight);
-            const size = Math.floor(min * 0.7);
+            const size = Math.floor(min * 0.75);
             return { width: size, height: size };
           },
           showScanBox: false
@@ -205,12 +191,13 @@
         </div>
       `;
 
-      // 背景色変更と音再生
       if (match) {
         document.body.style.backgroundColor = '#007bff';
+        successSound.volume = 1.0;
         successSound.play();
       } else {
         document.body.style.backgroundColor = '#d9534f';
+        failSound.volume = 1.0;
         failSound.play();
       }
 
